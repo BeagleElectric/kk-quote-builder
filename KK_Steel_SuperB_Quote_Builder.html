@@ -173,6 +173,14 @@
           <div class="price">$0</div>
         </div>
         <div class="opt-row">
+          <div><div class="name">Stainless Steel Fenders</div><div class="desc">Round stainless steel fenders (rear) — instead of poly</div></div>
+          <select data-type="yesno" data-key="stainlessFenders">
+            <option value="No">No</option>
+            <option value="Yes">Yes</option>
+          </select>
+          <div class="price">$0</div>
+        </div>
+        <div class="opt-row">
           <div><div class="name">Northern Package Bundle</div><div class="desc">Rock Guard + Rust Proofing + Poly Fenders combined (saves $400)</div></div>
           <select data-type="yesno" data-key="northernPackageBundle">
             <option value="No">No</option>
@@ -189,7 +197,7 @@
           <li><b>Sidewall Height</b><span>79 inch</span></li>
           <li><b>Corrugated Sidewall</b><span>14 Gauge</span></li>
         </ul>
-        <div class="opt-row">
+        <div class="opt-row" data-print="Slope Sheets — Upgraded to 12 Gauge Aluminum">
           <div><div class="name">Slope Sheets</div><div class="desc">Upgrade to 12 Gauge Aluminum Sheets</div></div>
           <select data-type="yesno" data-key="slopeSheets">
             <option value="No">No</option>
@@ -580,6 +588,7 @@
     heavyDutyRockGuard: 2200, // Heavy Duty Rock Guard
     rustProofing: 2800, // Rust Proofing
     polyFenders: 1800, // Poly Fenders
+    stainlessFenders: 4500, // Stainless Steel Fenders
     northernPackageBundle: 6400, // Northern Package Bundle
     slopeSheets: 2200, // Slope Sheets
     sidewallColor: { "White": 0, "Black": 0, "Silver": 0, "Charcoal": 0 }, // Sidewall Color
@@ -669,7 +678,12 @@
     return { optionsTotal, customTotal, discount, freight, grand };
   }
 
-  function onAnyChange(){ updatePhoto(); calcTotal(); }
+  function onAnyChange(e){
+    // Poly and stainless fenders are one-or-the-other
+    const t = e && e.target, poly = document.querySelector('[data-key="polyFenders"]'), ss = document.querySelector('[data-key="stainlessFenders"]');
+    if(t && t.value === "Yes"){ if(t === poly) ss.value = "No"; if(t === ss) poly.value = "No"; }
+    updatePhoto(); calcTotal();
+  }
 
   document.querySelectorAll(".opt-row select").forEach(s=> s.addEventListener("change", onAnyChange));
   document.querySelectorAll(".custom-price, .custom-desc").forEach(el=> el.addEventListener("input", onAnyChange));
@@ -707,7 +721,7 @@
       const optText = select.options[select.selectedIndex].textContent;
       if(price !== 0 || !/included|^no$/i.test(select.value)){
         const clean = optText.replace(/\s*\(\+?\$[\d,]+\)/,"").replace(/\s*\(Included\)/i,"").replace(/\s*\(No Charge\)/i,"");
-        lines.push({ n: name + " — " + clean, p: price });
+        lines.push({ n: (row.dataset.print && select.value === "Yes") ? row.dataset.print : (name + " — " + clean), p: price });
       }
     });
     document.querySelectorAll(".custom-row").forEach(row=>{
