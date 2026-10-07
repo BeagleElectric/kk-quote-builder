@@ -81,8 +81,9 @@
     header.top, .navbar, .customer-bar, .section, .summary-panel, .print-btn, .hint, footer.foot{ display:none !important; }
     body{ background:#fff; }
     .wrap{ display:block; margin:0; padding:0; max-width:100%; }
-    #printSheet{ display:block !important; }
+    #printSheet{ display:block !important; padding:0.5in 0.6in; box-sizing:border-box; -webkit-box-decoration-break:clone; box-decoration-break:clone; }
   }
+  @page{ size: letter; margin: 0; }
   #printSheet{ display:none; }
   #printSheet .ps-header{ display:flex; align-items:center; gap:16px; border-bottom:3px solid var(--navy); padding-bottom:12px; margin-bottom:16px; }
   #printSheet .ps-header img{ height:56px; }
@@ -787,7 +788,11 @@
     document.getElementById("psGrandLabel").textContent = totals.trade ? "Total after trade (CAD, before tax)" : "Grand total (CAD, before tax)";
 
     document.getElementById("psGrand").textContent = fmt(totals.grand);
+    const prevTitle = document.title;
+    const cust = document.getElementById("custName").value.trim();
+    document.title = "K&K Quote" + (cust ? " - " + cust : "") + " - " + document.querySelector("#printSheet .t1").textContent;
     window.print();
+    document.title = prevTitle;
   }
 
   document.getElementById("baseInput").value = BASE_PRICE;
