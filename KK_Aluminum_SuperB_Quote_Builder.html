@@ -78,7 +78,7 @@
   .hint{ font-size:11px; color:var(--muted); text-align:center; margin-top:6px; }
   footer.foot{ text-align:center; font-size:11.5px; color:var(--muted); padding:18px 0 30px; }
   @media print{
-    header.top, .navbar, .customer-bar, .section, .print-btn, .hint, footer.foot{ display:none !important; }
+    header.top, .navbar, .customer-bar, .section, .summary-panel, .print-btn, .hint, footer.foot{ display:none !important; }
     body{ background:#fff; }
     .wrap{ display:block; margin:0; padding:0; max-width:100%; }
     #printSheet{ display:block !important; }
@@ -102,6 +102,19 @@
   #printSheet .ps-total .l{ font-size:12px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); font-weight:700; }
   #printSheet .ps-total .v{ font-family:var(--mono); font-size:24px; font-weight:800; color:var(--navy); }
   #printSheet .ps-footer{ margin-top:22px; font-size:11px; color:var(--muted); border-top:1px solid var(--line); padding-top:10px; }
+
+  /* --- Unit status / editable base / trade-in --- */
+  .unit-bar{ grid-template-columns: repeat(4, 1fr); }
+  .unit-bar .wide{ grid-column: span 2; }
+  @media (max-width:700px){ .unit-bar .wide{ grid-column: span 2; } }
+  .field select{ width:100%; border:1px solid var(--line); border-radius:6px; padding:7px 9px; font-size:13.5px; font-family:var(--sans); background:#fff; color:var(--ink); }
+  .field select:focus{ outline:2px solid var(--navy); outline-offset:1px; }
+  .base-row input{ font-weight:700; }
+  .base-row .list{ display:block; font-size:10.5px; color:var(--muted); }
+  .trade-desc-row{ padding:0 0 5px 0; }
+  .trade-desc-row input{ width:100%; box-sizing:border-box; font-size:12.5px; padding:5px 7px; border:1px solid var(--line); border-radius:6px; font-family:var(--sans); }
+  #printSheet .ps-status{ margin-left:auto; background:var(--navy); color:#fff; font-weight:800; font-size:12px; letter-spacing:1.5px; text-transform:uppercase; padding:7px 12px; border-radius:4px; white-space:nowrap; }
+  #printSheet .ps-status.order{ background:#fff; color:var(--navy); border:2px solid var(--navy); }
 </style>
 </head>
 <body>
@@ -128,6 +141,17 @@
       <div class="field"><label for="custDate">Date</label><input id="custDate" type="date"></div>
       <div class="field"><label for="custRef">Quote ref</label><input id="custRef" type="text" placeholder="optional"></div>
       <div class="field"><label for="custPrep">Prepared by</label><input id="custPrep" type="text" value="K&K Trailer Sales"></div>
+    </div>
+
+    <div class="customer-bar unit-bar">
+      <div class="field wide"><label for="unitStatus">Unit status</label>
+        <select id="unitStatus">
+          <option value="order">Factory order</option>
+          <option value="stock-rimbey">In stock — Rimbey, AB</option>
+          <option value="stock-delisle">In stock — Delisle, SK</option>
+        </select>
+      </div>
+      <div class="field wide"><label for="unitVin">VIN / Stock # (optional)</label><input id="unitVin" type="text" placeholder="e.g. 2M9BGUC39VW208147"></div>
     </div>
 
     <details class="section" open>
@@ -450,12 +474,14 @@
     </div>
 
     <div class="totals">
-      <div class="row"><b>Base price</b><span class="val" id="baseVal"></span></div>
+      <div class="discount-row base-row"><label for="baseInput"><b>Base price</b><span class="list" id="baseList"></span></label><input id="baseInput" type="number" step="1"></div>
       <div class="row"><b>Selected options</b><span class="val" id="optionsVal">$0</span></div>
       <div class="row"><b>Custom add-ons</b><span class="val" id="customVal">$0</span></div>
       <hr>
       <div class="discount-row"><label for="discountInput">Discount</label><input id="discountInput" type="number" value="0" step="1"></div>
       <div class="freight-row"><label for="freightInput">Freight (FOB Winkler, MB)</label><input id="freightInput" type="number" value="0" step="1"></div>
+      <div class="discount-row"><label for="tradeInput">Trade-in allowance</label><input id="tradeInput" type="number" value="0" step="1"></div>
+      <div class="trade-desc-row"><input id="tradeDesc" type="text" placeholder="Trade-in unit (year, make, model, VIN)" aria-label="Trade-in unit description"></div>
       <hr>
       <div class="grand"><span class="label">Grand total</span><span class="amount" id="grandVal"></span></div>
     </div>
@@ -474,11 +500,13 @@
       <div class="t1">2027 Berg Aluminum Super B</div>
       <div class="t2">K&K Trailer Sales · Rimbey, AB & Delisle, SK · kandkent.ca</div>
     </div>
+    <div id="psStatus" class="ps-status order">Factory order</div>
   </div>
   <div class="ps-meta">
     <div>Prepared for: <b id="psCust">—</b></div>
     <div>Date: <b id="psDate">—</b></div>
     <div>Quote ref: <b id="psRef">—</b></div>
+    <div>VIN / Stock #: <b id="psVin">—</b></div>
     <div>Prepared by: <b id="psPrep">K&K Trailer Sales</b></div>
   </div>
   <div class="ps-grid">
@@ -491,10 +519,10 @@
     <div><div class="illus" style="border:1px solid var(--line); border-radius:8px;"><img id="psPhoto" src="" style="width:100%;display:block;"></div></div>
   </div>
   <div class="ps-total">
-    <div class="l">Grand total (CAD, before tax)</div>
+    <div class="l" id="psGrandLabel">Grand total (CAD, before tax)</div>
     <div class="v" id="psGrand">$0</div>
   </div>
-  <div class="ps-footer">Pricing FOB Winkler, MB. Freight added above if delivery is requested. Applicable taxes are extra. Price reflects Berg Trailer Sales figures on file and is subject to change.</div>
+  <div class="ps-footer" id="psFooter">Pricing FOB Winkler, MB. Freight added above if delivery is requested. Applicable taxes are extra. Price reflects Berg Trailer Sales figures on file and is subject to change.</div>
 </div>
 
 <script>
@@ -561,6 +589,12 @@
     });
   }
 
+  function getBase(){
+    const v = document.getElementById("baseInput").value;
+    return v === "" ? BASE_PRICE : (Number(v) || 0);
+  }
+  const STATUS_TEXT = { "order": "Factory order", "stock-rimbey": "In stock — Rimbey, AB", "stock-delisle": "In stock — Delisle, SK" };
+
   function calcTotal(){
     let optionsTotal = 0;
     document.querySelectorAll(".opt-row select[data-key]").forEach(select=>{
@@ -582,14 +616,15 @@
 
     const discount = Number(document.getElementById("discountInput").value) || 0;
     const freight = Number(document.getElementById("freightInput").value) || 0;
-    const grand = BASE_PRICE + optionsTotal + customTotal - discount + freight;
+    const trade = Number(document.getElementById("tradeInput").value) || 0;
+    const base = getBase();
+    const grand = base + optionsTotal + customTotal - discount + freight - trade;
 
-    document.getElementById("baseVal").textContent = fmt(BASE_PRICE);
     document.getElementById("optionsVal").textContent = fmt(optionsTotal);
     document.getElementById("customVal").textContent = fmt(customTotal);
     document.getElementById("grandVal").textContent = fmt(grand);
 
-    return { optionsTotal, customTotal, discount, freight, grand };
+    return { base, optionsTotal, customTotal, discount, freight, trade, grand };
   }
 
   function onAnyChange(){ updatePhoto(); calcTotal(); }
@@ -598,6 +633,7 @@
   document.querySelectorAll(".custom-price, .custom-desc").forEach(el=> el.addEventListener("input", onAnyChange));
   document.getElementById("discountInput").addEventListener("input", onAnyChange);
   document.getElementById("freightInput").addEventListener("input", onAnyChange);
+  ["baseInput","tradeInput"].forEach(id=> document.getElementById(id).addEventListener("input", onAnyChange));
 
   function preparePrint(){
     const totals = calcTotal();
@@ -606,6 +642,15 @@
     document.getElementById("psRef").textContent = document.getElementById("custRef").value || "—";
     document.getElementById("psPrep").textContent = document.getElementById("custPrep").value || "K&K Trailer Sales";
     document.getElementById("psPhoto").src = document.getElementById("trailerPhoto").src;
+    const status = document.getElementById("unitStatus").value;
+    const psStatus = document.getElementById("psStatus");
+    psStatus.textContent = STATUS_TEXT[status] || "Factory order";
+    psStatus.classList.toggle("order", status === "order");
+    document.getElementById("psVin").textContent = document.getElementById("unitVin").value.trim() || "—";
+    const where = status === "stock-delisle" ? "Delisle, SK" : "Rimbey, AB";
+    document.getElementById("psFooter").textContent = status === "order"
+      ? "Pricing FOB Winkler, MB. Freight added above if delivery is requested. Applicable taxes are extra. Price reflects Berg Trailer Sales figures on file and is subject to change."
+      : "Unit in stock at K&K " + where + ", subject to prior sale. Freight added above if delivery is requested. Trade-in value subject to inspection. Applicable taxes are extra.";
 
     // Trailer description: all standard/included spec lines across every section
     const descLines = [];
@@ -640,15 +685,19 @@
     });
 
     const psLines = document.getElementById("psLines");
-    psLines.innerHTML = "<div class='ps-line'><span class='n'><b>Base price</b></span><span class='p'>" + fmt(BASE_PRICE) + "</span></div>"
+    psLines.innerHTML = "<div class='ps-line'><span class='n'><b>Base price</b></span><span class='p'>" + fmt(totals.base) + "</span></div>"
       + lines.map(l=> "<div class='ps-line'><span class='n'>"+l.n+"</span><span class='p'>"+fmt(l.p)+"</span></div>").join("")
       + (totals.discount ? "<div class='ps-line'><span class='n'>Discount</span><span class='p'>-"+fmt(totals.discount)+"</span></div>" : "")
-      + (totals.freight ? "<div class='ps-line'><span class='n'>Freight (delivered)</span><span class='p'>"+fmt(totals.freight)+"</span></div>" : "");
+      + (totals.freight ? "<div class='ps-line'><span class='n'>Freight (delivered)</span><span class='p'>"+fmt(totals.freight)+"</span></div>" : "")
+      + (totals.trade ? "<div class='ps-line'><span class='n'>Trade-in allowance" + (document.getElementById("tradeDesc").value.trim() ? " — " + document.getElementById("tradeDesc").value.trim().replace(/[<>&]/g, "") : "") + "</span><span class='p'>-"+fmt(totals.trade)+"</span></div>" : "");
+    document.getElementById("psGrandLabel").textContent = totals.trade ? "Total after trade (CAD, before tax)" : "Grand total (CAD, before tax)";
 
     document.getElementById("psGrand").textContent = fmt(totals.grand);
     window.print();
   }
 
+  document.getElementById("baseInput").value = BASE_PRICE;
+  document.getElementById("baseList").textContent = "List " + fmt(BASE_PRICE) + " · edit for stock units";
   applyPriceLabels();
   updatePhoto();
   calcTotal();
